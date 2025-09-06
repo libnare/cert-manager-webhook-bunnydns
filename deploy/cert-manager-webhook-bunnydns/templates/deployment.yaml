@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cert-manager-webhook-bunnydns.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "cert-manager-webhook-bunnydns.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "cert-manager-webhook-bunnydns.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cert-manager-webhook-bunnydns.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "cert-manager-webhook-bunnydns.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+            - --secure-port={{ .Values.webhook.port }}
+          env:
+            - name: GROUP_NAME
+              value: {{ .Values.groupName | quote }}
+          ports:
+            - name: https
+              containerPort: {{ .Values.webhook.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: {{ .Values.webhook.healthPath }}
+              port: https
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: {{ .Values.webhook.healthPath }}
+              port: https
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: certs
+          secret:
+            secretName: {{ include "cert-manager-webhook-bunnydns.servingCertificate" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

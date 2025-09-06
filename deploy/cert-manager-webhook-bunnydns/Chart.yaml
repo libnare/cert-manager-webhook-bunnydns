@@ -1,0 +1,17 @@
+apiVersion: v2
+name: cert-manager-webhook-bunnydns
+description: A cert-manager webhook for BunnyDNS
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - cert-manager
+  - webhook
+  - dns
+  - bunnydns
+  - acme
+home: https://github.com/libnare/cert-manager-webhook-bunnydns
+sources:
+  - https://github.com/libnare/cert-manager-webhook-bunnydns
+maintainers:
+  - name: libnare
